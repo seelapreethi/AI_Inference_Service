@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+joblib
+celery
+redis
+python-dotenv
+numpy
+scikit-learn
+flower
+pytest
+pytest-cov
+httpx
