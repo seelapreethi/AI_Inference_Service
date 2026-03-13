@@ -1,11 +1,13 @@
 version: "3.9"
 
 services:
+
   redis:
     image: redis:latest
     container_name: redis-test
     ports:
       - "6379:6379"
+    restart: always
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -21,21 +23,28 @@ services:
       - "8000:8000"
     env_file:
       - .env
+    restart: always
     depends_on:
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   worker:
     build:
       context: .
       dockerfile: Dockerfile.worker
     container_name: celery-worker
+    command: celery -A tasks.ml_tasks worker --loglevel=info --concurrency=4
     env_file:
       - .env
+    restart: always
     depends_on:
       redis:
         condition: service_healthy
-
 
   flower:
     image: mher/flower
@@ -43,6 +52,7 @@ services:
     command: celery --broker=redis://redis:6379/0 flower --port=5555
     ports:
       - "5555:5555"
+    restart: always
     depends_on:
       redis:
         condition: service_healthy

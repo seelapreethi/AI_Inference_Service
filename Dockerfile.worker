@@ -1,13 +1,24 @@
-FROM python:3.11-slim
+# Builder stage
+FROM python:3.10-slim as builder
+
+WORKDIR /install
+
+COPY requirements.txt .
+
+RUN pip install --prefix=/install -r requirements.txt
+
+
+# Runtime stage
+FROM python:3.10-slim
 
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir -r requirements.txt
+COPY --from=builder /install /usr/local
 
-COPY app/ app/
-COPY tasks/ tasks/
-COPY models/ models/
+COPY tasks ./tasks
+COPY models ./models
+COPY app ./app
 
-CMD ["celery", "-A", "tasks.celery_app.celery_app", "worker", "--loglevel=info"]
+ENV PYTHONUNBUFFERED=1
+
+CMD ["celery", "-A", "tasks.celery_app", "worker", "--loglevel=info"]
